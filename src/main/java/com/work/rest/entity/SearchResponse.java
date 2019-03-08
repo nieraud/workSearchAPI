@@ -17,7 +17,8 @@ import java.util.List;
 public class SearchResponse {
     private Integer countFound;
     private Integer currentPage;
-    private List<Integer> availablePages;
+    private Integer lastPage;
+//    private List<Integer> availablePages;
     private List<Vacancy> vacancies = new ArrayList<>();
 
     public SearchResponse(Integer countFound, List<Vacancy> vacancies) {

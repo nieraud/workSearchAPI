@@ -1,8 +1,6 @@
 package com.work.rest.service;
 
-import com.work.rest.entity.Search;
-import com.work.rest.entity.SearchResponse;
-import com.work.rest.entity.Vacancy;
+import com.work.rest.entity.*;
 import com.work.rest.service.base.SearchService;
 import com.work.rest.utils.ProjectConstants;
 import org.jsoup.Jsoup;
@@ -37,10 +35,19 @@ public class WorkServiceImpl implements SearchService, WorkService {
         if(document == null) {
             return null;
         }
-        return parseDocument(document, search);
+        return parseSearchDocument(document, search);
     }
 
-    private SearchResponse parseDocument(Document document, Search search) {
+    @Override
+    public WorkDetailsResponce workDetails(WorkDetails workDetails) throws IOException {
+        Document document = requestService.workDetails(ProjectConstants.WORK_UA_NAME, workDetails);
+        if(document == null) {
+            return null;
+        }
+        return parseWorkDetailsDocument(document, workDetails);
+    }
+
+    private SearchResponse parseSearchDocument(Document document, Search search) {
         SearchResponse response = new SearchResponse();
         response.setCurrentPage(search.getPage());
 
@@ -54,17 +61,10 @@ public class WorkServiceImpl implements SearchService, WorkService {
         Elements divResult = document.select("div#pjax-job-list").first().children();
 
         Elements paginatioinLinks = divResult.select("ul.pagination.hidden-xs").select("li").select("a");
-        List<Integer> pages = new ArrayList<>();
-        pages.add(search.getPage());
-        for (Element link : paginatioinLinks) {
-            String title = link.attr("title");
-            if(title != null && !title.isEmpty()) {
-                Integer page = parseIntegerOrNull(title);
-                pages.add(page);
-            }
+        String title = paginatioinLinks.get(paginatioinLinks.size()-2).attr("title");
+        if(title != null && !title.isEmpty()) {
+            response.setLastPage(parseIntegerOrNull(title));
         }
-        Collections.sort(pages);
-        response.setAvailablePages(pages);
 
         List<Vacancy> vacancyList = new ArrayList<>();
         for (int i = 0; i < divResult.size(); i+=2) {
@@ -105,6 +105,68 @@ public class WorkServiceImpl implements SearchService, WorkService {
         }
         response.setVacancies(vacancyList);
         return response;
+    }
+
+    private WorkDetailsResponce parseWorkDetailsDocument(Document document, WorkDetails workDetails){
+        WorkDetailsResponce responce = new WorkDetailsResponce();
+
+        Element divCard = document.select("div.card.wordwrap").first();
+        if(divCard == null){
+            return new WorkDetailsResponce(); // no one found
+        }
+
+        Element logoContainer = divCard.select("p.logo-job-container").first();
+        if(logoContainer != null){
+            String logoSrc = logoContainer.select("a").first().select("img").first().attr("src");
+            if(logoSrc != null && !logoSrc.isEmpty()) {
+                responce.setCompanyLogoSrc("https:" + logoSrc);
+            }
+        }
+
+        String text = divCard.select("p.cut-bottom-print").first().select("span.text-muted").text();
+        responce.setJobCreatedDate(text);
+
+        String jobName = divCard.select("h1.add-top-sm").first().text();
+        responce.setJobName(jobName);
+
+        Element salaryEl = divCard.select("h3.text-muted.text-muted-print").first();
+        if(salaryEl != null){
+            responce.setJobSalary(salaryEl.text());
+        }
+
+        Elements infoDDList = divCard.select("dl.dl-horizontal").select("dd");
+        Elements companyElement = infoDDList.get(0).select("a");
+
+        Integer companyId = parseIntegerOrNull(companyElement.attr("href"));
+        responce.setCompanyId(companyId);
+
+        String companyName = companyElement.select("b").text();
+        responce.setCompanyName(companyName);
+
+        String contactPeople = infoDDList.get(1).text();
+        responce.setCompanyContactPeople(contactPeople);
+
+        String companyPhoneNumber = infoDDList.get(2).select("a").text();
+        responce.setCompanyPhoneNumber(companyPhoneNumber);
+
+        String city = infoDDList.get(3).text();
+        responce.setJobCity(city);
+
+        String employmentType = infoDDList.get(4).text();
+        responce.setJobEmploymentType(employmentType);
+
+        String requirements = infoDDList.get(5).text();
+        responce.setJobRequirements(requirements);
+
+        StringBuilder jobDescription = new StringBuilder();
+        Elements point = divCard.select("h2").next();
+        while (!point.is("div.form-group.hidden-print")){
+            jobDescription.append(point.html()).append("\n");
+            point = point.next();
+        }
+        responce.setJobDescription(jobDescription.toString());
+
+        return responce;
     }
 
     private Integer parseIntegerOrNull(String string){

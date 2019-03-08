@@ -1,6 +1,7 @@
 package com.work.rest.service;
 
 import com.work.rest.entity.Search;
+import com.work.rest.entity.WorkDetails;
 import com.work.rest.utils.ProjectConstants;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -14,23 +15,32 @@ public class RequestServiceImpl implements RequestService {
     @Override
     public Document search(@NotNull String siteName, @NotNull Search search) throws IOException {
         switch (siteName) {
-            case ProjectConstants.WORK_UA_NAME : return parseWorkUa(search);
-            case ProjectConstants.DOU_NAME : return parseDou(search);
-            case ProjectConstants.RABOTA_UA_NAME : return parseRabotaUa(search);
+            case ProjectConstants.WORK_UA_NAME : return getWorkSearch(search);
+            case ProjectConstants.DOU_NAME : return getDouSearch(search);
+            case ProjectConstants.RABOTA_UA_NAME : return getRabotaSearch(search);
             default: return null;
         }
     }
 
-    private Document parseRabotaUa(Search search) {
+    @Override
+    public Document workDetails(String siteName, WorkDetails workDetails) throws IOException {
+        switch (siteName) {
+            case ProjectConstants.WORK_UA_NAME : return getWorkDetailDocument(workDetails);
+            case ProjectConstants.DOU_NAME : return getDouDetailDocument(workDetails);
+            case ProjectConstants.RABOTA_UA_NAME : return getRabotaDetailDocument(workDetails);
+            default: return null;
+        }
+    }
+
+    private Document getRabotaSearch(Search search) {
         return null;
     }
 
-    private Document parseDou(Search search) {
+    private Document getDouSearch(Search search) {
         return null;
     }
 
-    // jobs/id - for detail vacancy
-    private Document parseWorkUa(Search search) throws IOException {
+    private Document getWorkSearch(Search search) throws IOException {
         String url = "https://www.work.ua/";
         if(search.getLang().equals("ru")){
             url += "ru/";
@@ -62,4 +72,29 @@ public class RequestServiceImpl implements RequestService {
 
         return Jsoup.connect(url).userAgent("Mozilla").timeout(4000).get();
     }
+
+    private Document getDouDetailDocument(WorkDetails workDetails) {
+        return null;
+    }
+
+    private Document getRabotaDetailDocument(WorkDetails workDetails) {
+        return null;
+    }
+
+    private Document getWorkDetailDocument(WorkDetails workDetails) throws IOException {
+        String url = "https://www.work.ua/jobs/";
+
+        if(workDetails.getJobId() == null) {
+            throw new UnsupportedOperationException();
+        }
+        url += workDetails.getJobId();
+
+        if(workDetails.getLang().equals(ProjectConstants.RU_LANG)) {
+            url += "?setlp=ru";
+        }
+
+        return Jsoup.connect(url).userAgent("Mozilla").timeout(4000).get();
+    }
+
+
 }
